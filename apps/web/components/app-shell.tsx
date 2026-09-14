@@ -36,7 +36,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: "/", label: "Overview", shortLabel: "Home", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Overview", shortLabel: "Home", icon: LayoutDashboard },
   { href: "/leases", label: "Mining sites", shortLabel: "Sites", icon: FileText },
   { href: "/map", label: "Site map", shortLabel: "Map", icon: Map },
   { href: "/calendar", label: "Deadlines", shortLabel: "Due dates", icon: CalendarClock },
@@ -44,7 +44,6 @@ const NAV: NavItem[] = [
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -125,7 +124,7 @@ function MobileHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
       <Brand />
-      {current && current.href !== "/" && (
+      {current && current.href !== "/dashboard" && (
         <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground">
           {current.shortLabel}
         </span>

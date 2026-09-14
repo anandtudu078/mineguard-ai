@@ -27,8 +27,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLogin = request.nextUrl.pathname.startsWith("/login");
+  // The landing page is public marketing surface; unauthenticated visitors
+  // should see it rather than bounce to login.
+  const isLanding = request.nextUrl.pathname === "/";
 
-  if (!user && !isLogin) {
+  if (!user && !isLogin && !isLanding) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -40,7 +43,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isLogin) {
-    const redirectResponse = NextResponse.redirect(new URL("/", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie.name, cookie.value);
     });

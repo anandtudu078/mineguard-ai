@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   if (!result.ok) {
     return (
       <>
-        <PageHeader title="Dashboard" />
+        <PageHeader title="Overview" />
         <ApiErrorState detail={result.error} status={result.status} />
       </>
     );

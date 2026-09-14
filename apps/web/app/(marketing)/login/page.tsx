@@ -50,12 +50,12 @@ export default function LoginPage() {
       }
     }
 
-    router.replace("/");
+    router.replace("/dashboard");
     router.refresh();
   }
 
   return (
-    <main className="grid min-h-[calc(100dvh-7rem)] place-items-center py-8">
+    <main className="grid min-h-dvh place-items-center px-4 py-10">
       <section className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl sm:p-8">
         <div className="mb-7 flex items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
