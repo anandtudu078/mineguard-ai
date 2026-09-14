@@ -19,6 +19,7 @@ import {
   ListChecks,
   LayoutDashboard,
   Map,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +42,7 @@ const NAV: NavItem[] = [
   { href: "/map", label: "Site map", shortLabel: "Map", icon: Map },
   { href: "/calendar", label: "Deadlines", shortLabel: "Due dates", icon: CalendarClock },
   { href: "/actions", label: "Needs attention", shortLabel: "Actions", icon: ListChecks },
+  { href: "/users", label: "Users", shortLabel: "Users", icon: UsersRound },
 ];
 
 function isActive(pathname: string, href: string): boolean {

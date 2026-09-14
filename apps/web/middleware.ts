@@ -28,10 +28,13 @@ export async function middleware(request: NextRequest) {
 
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   // The landing page is public marketing surface; unauthenticated visitors
-  // should see it rather than bounce to login.
+  // should see it rather than bounce to login. The auth callback is exempt
+  // because invite links arrive with their tokens in the URL fragment, which
+  // only the browser client (not this middleware) can read.
   const isLanding = request.nextUrl.pathname === "/";
+  const isAuthCallback = request.nextUrl.pathname.startsWith("/auth/callback");
 
-  if (!user && !isLogin && !isLanding) {
+  if (!user && !isLogin && !isLanding && !isAuthCallback) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);

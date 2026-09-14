@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     #: Legacy shared HS256 secret (Project Settings -> API -> JWT Secret).
     #: Ignored when the project signs asymmetrically, which newer projects do.
     supabase_jwt_secret: str | None = None
+    #: Service-role key for admin calls such as sending invites. Bypasses RLS;
+    #: server-only, never exposed to the browser.
+    supabase_service_role_key: str | None = None
     #: Expected ``aud`` claim. Supabase issues "authenticated" for signed-in users.
     supabase_jwt_audience: str = "authenticated"
     #: Expected ``iss`` claim. Defaults to ``{supabase_url}/auth/v1``.
@@ -45,6 +48,11 @@ class Settings(BaseSettings):
     #: The role granted to the very first user to sign in, when no profiles
     #: exist yet. Every later unknown user is rejected instead.
     bootstrap_role: str = "admin"
+
+    #: Where Supabase sends a person after they accept an invite, so they can
+    #: set their password. Must also be listed under Authentication -> URL
+    #: Configuration -> Redirect URLs in the Supabase dashboard.
+    invite_redirect_url: str = "http://localhost:3000/auth/callback"
 
     # --- Background jobs ---
     redis_url: str = "redis://localhost:6379/0"

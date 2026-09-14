@@ -29,6 +29,7 @@ htmlcov/
 # --- Data / uploads ---
 /data/
 /uploads/
+services/api/storage/
 *.sqlite3
 
 # --- Editors / OS ---

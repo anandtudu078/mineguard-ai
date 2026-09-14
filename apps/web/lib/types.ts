@@ -26,6 +26,20 @@ export type LeaseStatus =
 
   export type AppRole = "admin" | "inspector" | "operator";
 
+  /** Application profile for an invited Supabase user (admin users page). */
+  export interface AppUser {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    role: AppRole;
+    holder_id: string | null;
+    is_active: boolean;
+    last_seen_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+  }
+
 export type LicenceStatus =
   | "pending"
   | "valid"
@@ -358,4 +372,49 @@ export interface DashboardSummary {
     overdue: number;
     due_soon: number;
   }[];
+}
+
+export type ViolationSeverity = "critical" | "high" | "medium" | "low";
+export type FindingStatus = "open" | "in_progress" | "resolved" | "false_positive";
+export type FindingSource = "ai_vision" | "operator" | "inspector" | "manual";
+
+export interface InspectionFinding {
+  id: string;
+  lease_id: string;
+  source: FindingSource;
+  image_path: string | null;
+  title: string;
+  description: string | null;
+  severity: ViolationSeverity;
+  status: FindingStatus;
+  confidence: number | null;
+  ai_model: string | null;
+  detected_at: string;
+  first_alerted_at: string | null;
+  acknowledged_at: string | null;
+  escalation_level: number;
+  last_escalated_at: string | null;
+  corrective_action: string | null;
+  action_owner: string | null;
+  action_due_date: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolution_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnalyzeResponse {
+  lease_id: string;
+  document_id: string;
+  summary: string | null;
+  model: string;
+  findings: InspectionFinding[];
+}
+
+export interface EscalationStats {
+  candidates: number;
+  escalated: number;
+  failed: number;
+  skipped: number;
 }
