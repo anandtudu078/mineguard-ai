@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentUpload } from "@/components/document-upload";
 import { DocumentReview } from "@/components/document-review";
+import { InspectionsPanel } from "@/components/inspections-panel";
 import {
   getLease,
   getLeaseCompliance,
@@ -194,6 +195,7 @@ export default async function LeaseDetailPage({ params }: { params: Params }) {
           </Card>
 
           <LicenceList licences={licences} />
+          <InspectionsPanel leaseId={lease.id} />
           <DocumentUpload leaseId={lease.id} />
           <Card>
             <CardHeader>

@@ -22,6 +22,7 @@ dependencies = [
     # brings in ``cryptography`` for the ES256/RS256 keys that new Supabase
     # projects sign with.
     "pyjwt[crypto]>=2.10",
+    "google-genai>=1.0",
 ]
 
 [dependency-groups]

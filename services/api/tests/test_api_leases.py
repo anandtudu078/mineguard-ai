@@ -366,7 +366,7 @@ def test_compliance_endpoint_explains_the_score(
 
     # The breakdown must be present so the number is defensible.
     names = {c["name"] for c in body["components"]}
-    assert names == {"clearance_validity", "filing_adherence", "timeliness"}
+    assert names == {"clearance_validity", "filing_adherence", "timeliness", "site_safety"}
     for component in body["components"]:
         assert component["detail"]
 

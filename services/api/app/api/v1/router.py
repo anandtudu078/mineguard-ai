@@ -7,6 +7,7 @@ from app.api.v1 import (
     auth,
     calendar,
     dashboard,
+    findings,
     leases,
     licences,
     obligations,
@@ -26,3 +27,4 @@ api_router.include_router(leases.router)
 api_router.include_router(licences.router)
 api_router.include_router(obligations.router)
 api_router.include_router(calendar.router)
+api_router.include_router(findings.router)
