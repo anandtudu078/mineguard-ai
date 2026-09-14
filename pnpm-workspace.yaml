@@ -2,8 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
 
+allowBuilds:
+  unrs-resolver: true
+
 # pnpm 11 reads settings from here, not from package.json.
+# unrs-resolver (used by Next/ESLint import resolution) has a postinstall that
+# must run; everything else keeps its build scripts blocked.
 onlyBuiltDependencies:
   - unrs-resolver
-allowBuilds:
-  unrs-resolver: set this to true or false

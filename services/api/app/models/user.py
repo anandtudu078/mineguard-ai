@@ -40,7 +40,10 @@ class AppUser(TimestampMixin, Base):
     full_name: Mapped[str | None] = mapped_column(String(200))
 
     role: Mapped[AppRole] = mapped_column(
-        enum_column(AppRole), default=AppRole.OPERATOR, server_default=text("'operator'"), index=True
+        enum_column(AppRole),
+        default=AppRole.OPERATOR,
+        server_default=text("'operator'"),
+        index=True,
     )
 
     #: The organisation this user acts for. Required in practice for an operator

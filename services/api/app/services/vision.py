@@ -126,7 +126,11 @@ def _parse_payload(payload: Any, model_name: str) -> VisionResult:
             continue
 
         severity_raw = str(item.get("severity") or "medium").strip().lower()
-        severity = ViolationSeverity(severity_raw) if severity_raw in _SEVERITIES else ViolationSeverity.MEDIUM
+        severity = (
+            ViolationSeverity(severity_raw)
+            if severity_raw in _SEVERITIES
+            else ViolationSeverity.MEDIUM
+        )
 
         try:
             confidence = Decimal(str(item.get("confidence", "0.5"))).quantize(Decimal("0.001"))
@@ -138,7 +142,9 @@ def _parse_payload(payload: Any, model_name: str) -> VisionResult:
                 title=title[:200],
                 severity=severity,
                 confidence=confidence,
-                description=(str(item["description"]).strip() or None) if item.get("description") else None,
+                description=(
+                    str(item["description"]).strip() or None
+                ) if item.get("description") else None,
                 corrective_action=(
                     str(item["corrective_action"]).strip() or None
                 ) if item.get("corrective_action") else None,

@@ -65,6 +65,10 @@ class Settings(BaseSettings):
 
     # --- Document storage ---
     document_storage_path: str = "./storage/uploads"
+    #: When true (and Supabase credentials exist), uploads go to Supabase
+    #: Storage instead of local disk. Cloud containers have ephemeral disks,
+    #: so production deployments must enable this.
+    supabase_storage_enabled: bool = False
 
     # --- LLM providers (used from Feature 2 onward) ---
     gemini_api_key: str | None = None

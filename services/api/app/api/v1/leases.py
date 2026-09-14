@@ -3,21 +3,23 @@
 import re
 import uuid
 from datetime import date
-from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import (
     AppSettings,
     AsOfDate,
+    AuditCtx,
+    CurrentPrincipal,
     DbSession,
     PaginationDep,
     conflict,
     is_unique_violation,
 )
+from app.core.storage import UploadStorage
 from app.models.document import DocumentStatus, DocumentType, LeaseDocument
 from app.models.enums import LeaseStatus, LeaseType, ObligationStatus, RiskLevel
 from app.models.holder import LeaseHolder
@@ -31,6 +33,7 @@ from app.schemas.document import DocumentUpdate
 from app.schemas.lease import LeaseCreate, LeaseListItem, LeaseRead, LeaseUpdate
 from app.services import geo
 from app.services import leases as lease_service
+from app.services.authorization import assert_lease_access
 from app.services.compliance import score_lease
 from app.services.document_extraction import extract_document_metadata
 from app.services.reference import apply_partial_update
@@ -405,12 +408,8 @@ async def upload_lease_document(
     if not raw_bytes:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Uploaded file is empty")
 
-    storage_dir = Path(settings.document_storage_path)
-    storage_dir.mkdir(parents=True, exist_ok=True)
     file_name = file.filename or f"document-{uuid.uuid4()}"
-    stored_name = f"{uuid.uuid4()}_{file_name}"
-    stored_path = storage_dir / stored_name
-    stored_path.write_bytes(raw_bytes)
+    reference = UploadStorage(settings).save_upload(raw_bytes, file_name, file.content_type)
 
     text_payload = raw_bytes.decode("utf-8", errors="ignore")
     expiry_date = _extract_date_from_text(text_payload)
@@ -433,7 +432,7 @@ async def upload_lease_document(
         title=title,
         file_name=file_name,
         content_type=file.content_type or "application/octet-stream",
-        file_path=str(stored_path),
+        file_path=reference,
         document_type=document_type,
         source=source,
         status=DocumentStatus.PENDING_REVIEW,
@@ -469,6 +468,47 @@ async def upload_lease_document(
         "created_at": document.created_at.isoformat(),
         "updated_at": document.updated_at.isoformat(),
     }
+
+
+@router.get(
+    "/{lease_id}/documents/{document_id}/download",
+    response_class=Response,
+    summary="Download an uploaded document or site photo",
+)
+def download_lease_document(
+    lease_id: uuid.UUID,
+    document_id: uuid.UUID,
+    session: DbSession,
+    settings: AppSettings,
+    principal: CurrentPrincipal,
+    audit: AuditCtx,
+) -> Response:
+    """Stream the stored file, wherever it lives.
+
+    With Supabase Storage enabled the browser cannot fetch the object directly
+    (the bucket is private by design), so the API proxies it after checking the
+    caller may reach the lease.
+    """
+    assert_lease_access(session, principal, audit, lease_id, action="download document")
+
+    document = session.get(LeaseDocument, document_id)
+    if document is None or document.lease_id != lease_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+
+    try:
+        payload, media_type = UploadStorage(settings).open_download(document.file_path)
+    except (OSError, FileNotFoundError) as error:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Stored file is missing") from error
+    except Exception as error:  # Storage network errors surface as 502.
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, f"Storage backend error: {error}"
+        ) from error
+
+    return Response(
+        content=payload,
+        media_type=media_type or document.content_type,
+        headers={"Content-Disposition": f'inline; filename="{document.file_name}"'},
+    )
 
 
 @router.get(

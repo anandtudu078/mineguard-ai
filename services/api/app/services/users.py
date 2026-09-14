@@ -180,7 +180,9 @@ def list_users(
     return list(session.scalars(stmt).all())
 
 
-def assert_admin_survives(session: Session, user: AppUser, new_role: AppRole, new_active: bool) -> None:
+def assert_admin_survives(
+    session: Session, user: AppUser, new_role: AppRole, new_active: bool
+) -> None:
     """Refuse an edit that removes the last active administrator.
 
     Losing every administrator is unrecoverable through the application: nobody
