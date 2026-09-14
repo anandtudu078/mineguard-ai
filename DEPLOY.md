@@ -5,7 +5,7 @@ Target architecture (€0/month, always-on):
 | Piece | Host | Notes |
 |---|---|---|
 | Web (Next.js) | **Vercel** (Hobby, free) | Git-push deploys |
-| API (FastAPI) | **Koyeb** (Free instance) | Docker deploy, always-on; 512 MB RAM |
+| API (FastAPI) | **Railway** (~$5/mo) or **Koyeb** (free, 512 MB) | Docker deploy, always-on |
 | DB + Auth + Storage | **Supabase** (free) | Already migrated; add one storage bucket |
 
 ---
@@ -23,12 +23,23 @@ Target architecture (€0/month, always-on):
 2. Name: `lease-uploads` — keep it **Private** (the API proxies downloads so auth is enforced)
 3. No RLS policies needed: all access happens with the service-role key server-side.
 
-## 2. Koyeb: deploy the API
+## 2. Railway (or Koyeb): deploy the API
+
+### Railway
+
+1. railway.app → **New Project → Deploy from GitHub repo** → pick this repo.
+2. In the service: **Settings → Root Directory = `services/api`** (the repo's
+   `services/api/railway.json` then selects the Dockerfile builder and the
+   `/health` healthcheck automatically).
+3. **Settings → Networking → Generate Domain** → note the URL.
+4. Add the environment variables from the table below.
+
+### Koyeb
 
 1. Koyeb → **Create App** → **GitHub** → pick this repo.
 2. Build settings:
    - **Builder:** Docker
-   - **Build context:** `/` (repository root)
+   - **Build context:** `services/api`
    - **Dockerfile:** `services/api/Dockerfile`
 3. Service settings:
    - **Port:** `8000`
