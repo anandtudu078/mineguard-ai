@@ -54,7 +54,7 @@ Target architecture (€0/month, always-on):
    | `SUPABASE_URL` | `https://<ref>.supabase.co` |
    | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → service_role |
    | `SUPABASE_STORAGE_ENABLED` | `true` |
-   | `API_CORS_ORIGINS` | `https://<your-app>.vercel.app` |
+   | `API_CORS_ORIGINS` | `["https://<your-app>.vercel.app"]` — a JSON array; pydantic-settings JSON-decodes this field, a bare URL crashes boot |
    | `INVITE_REDIRECT_URL` | `https://<your-app>.vercel.app/auth/callback` |
    | `API_ENV` | `production` |
    | `GEMINI_API_KEY` | your key |
