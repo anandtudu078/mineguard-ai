@@ -7,12 +7,15 @@ someone is, and then one of three things happens:
 * No profile exists **and there are no profiles at all** - this is the very first
   administrator, so bootstrap one. A fresh deployment would otherwise be
   impossible to administer, since creating the first user requires being an admin.
-* No profile exists but others do - refuse. A new colleague appearing in Supabase
-  is not by itself a grant of access; somebody has to assign a role.
+* No profile exists but others do - provision with the self-registration role
+  when ``SELF_REGISTRATION_ENABLED`` is on (checked **before** the refusal so an
+  empty database cannot shadow it), otherwise refuse. A new colleague appearing
+  in Supabase is not by itself a grant of access; somebody has to assign a role.
 
-The third case is the one that matters. Auto-provisioning every unknown signup as
-a viewer would mean anyone who can reach the Supabase signup form ends up inside
-the compliance register.
+The refusal case is the one that matters by default. Auto-provisioning every
+unknown signup as a viewer would mean anyone who can reach the Supabase signup
+form ends up inside the compliance register, so the switch is off unless the
+operator turns it on deliberately.
 """
 
 from __future__ import annotations
@@ -72,6 +75,47 @@ def bootstrap_role() -> AppRole:
             settings.bootstrap_role,
         )
         return AppRole.ADMIN
+
+
+def self_registration_role() -> AppRole:
+    """The role handed to self-registered users, validated against the enum."""
+    try:
+        return AppRole(settings.self_registration_role)
+    except ValueError:
+        logger.warning(
+            "SELF_REGISTRATION_ROLE=%r is not a known role; falling back to 'inspector'",
+            settings.self_registration_role,
+        )
+        return AppRole.INSPECTOR
+
+
+def _self_register(
+    session: Session, claims: TokenClaims, user_id: uuid.UUID
+) -> AppUser:
+    """Provision a verified Supabase user who has no profile yet.
+
+    Split from ``_bootstrap`` so the audit note records *why* the account
+    appeared - self-service, not first-login privilege.
+    """
+    user = AppUser(
+        id=user_id,
+        email=claims.email,
+        full_name=claims.display_name,
+        role=self_registration_role(),
+        notes="Self-registered through the public sign-up form.",
+    )
+    session.add(user)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        existing = session.get(AppUser, user_id)
+        if existing is None:  # pragma: no cover - defensive
+            raise
+        return existing
+    session.refresh(user)
+    logger.info("Self-registered %s with role %s", user.email or user.id, user.role)
+    return user
 
 
 def _profile_count(session: Session) -> int:
@@ -144,6 +188,11 @@ def resolve_principal(session: Session, claims: TokenClaims) -> Principal:
     if user is None:
         if _profile_count(session) == 0:
             user = _bootstrap(session, claims, user_id)
+        elif settings.self_registration_enabled:
+            # Checked after the bootstrap case but before refusal: an empty
+            # register hands out the bootstrap role regardless, so ordering
+            # only affects which audit note the very first account carries.
+            user = _self_register(session, claims, user_id)
         else:
             raise UnprovisionedIdentityError(
                 "Your account is not set up in this system yet. "

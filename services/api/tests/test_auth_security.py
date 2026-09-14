@@ -191,6 +191,86 @@ def test_resolve_principal_refuses_unprovisioned_subsequent_user(session: Sessio
         user_service.resolve_principal(session, second_claims)
 
 
+def test_resolve_principal_self_registers_when_enabled(session: Session, monkeypatch):
+    monkeypatch.setattr(settings, "self_registration_enabled", True)
+    monkeypatch.setattr(settings, "self_registration_role", "inspector")
+
+    first_id = uuid.uuid4()
+    user_service.resolve_principal(
+        session,
+        TokenClaims(subject=str(first_id), email="first@example.com"),
+    )
+
+    second_id = uuid.uuid4()
+    principal = user_service.resolve_principal(
+        session,
+        TokenClaims(
+            subject=str(second_id),
+            email="walkin@example.com",
+            metadata={"full_name": "Walk-in User"},
+        ),
+    )
+
+    assert principal.role is AppRole.INSPECTOR
+    assert principal.has_profile
+    stored = session.get(AppUser, second_id)
+    assert stored is not None
+    assert stored.role is AppRole.INSPECTOR
+    assert "Self-registered" in (stored.notes or "")
+
+
+def test_resolve_principal_self_registration_honours_custom_role(session: Session, monkeypatch):
+    monkeypatch.setattr(settings, "self_registration_enabled", True)
+    monkeypatch.setattr(settings, "self_registration_role", "operator")
+
+    user_id = uuid.uuid4()
+    principal = user_service.resolve_principal(
+        session,
+        TokenClaims(subject=str(user_id), email="first@example.com"),
+    )
+
+    # Empty register: bootstrap wins, and BOOTSTRAP_ROLE still applies.
+    assert principal.role is AppRole.ADMIN
+
+
+def test_resolve_principal_refuses_when_self_registration_disabled(session: Session, monkeypatch):
+    monkeypatch.setattr(settings, "self_registration_enabled", False)
+
+    first_id = uuid.uuid4()
+    user_service.resolve_principal(
+        session,
+        TokenClaims(subject=str(first_id), email="first@example.com"),
+    )
+
+    second_id = uuid.uuid4()
+    with pytest.raises(user_service.UnprovisionedIdentityError):
+        user_service.resolve_principal(
+            session,
+            TokenClaims(subject=str(second_id), email="stranger@example.com"),
+        )
+
+
+def test_resolve_principal_self_registration_falls_back_on_bad_role(
+    session: Session, monkeypatch
+):
+    monkeypatch.setattr(settings, "self_registration_enabled", True)
+    monkeypatch.setattr(settings, "self_registration_role", "wizard")
+
+    first_id = uuid.uuid4()
+    user_service.resolve_principal(
+        session,
+        TokenClaims(subject=str(first_id), email="first@example.com"),
+    )
+
+    second_id = uuid.uuid4()
+    principal = user_service.resolve_principal(
+        session,
+        TokenClaims(subject=str(second_id), email="walkin@example.com"),
+    )
+
+    assert principal.role is AppRole.INSPECTOR
+
+
 def test_resolve_principal_refuses_inactive_user(session: Session):
     user_id = uuid.uuid4()
     user = AppUser(

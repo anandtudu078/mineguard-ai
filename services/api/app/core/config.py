@@ -46,8 +46,16 @@ class Settings(BaseSettings):
     #: Expected ``iss`` claim. Defaults to ``{supabase_url}/auth/v1``.
     supabase_jwt_issuer: str | None = None
     #: The role granted to the very first user to sign in, when no profiles
-    #: exist yet. Every later unknown user is rejected instead.
+    #: exist yet. Every later unknown user is rejected unless self-registration
+    #: is on.
     bootstrap_role: str = "admin"
+    #: When true, a Supabase-authenticated user with no profile is provisioned
+    #: automatically with ``self_registration_role`` instead of being refused.
+    #: Pairs with "Allow new users to sign up" in the Supabase dashboard.
+    self_registration_enabled: bool = False
+    #: The role handed to self-registered users. Kept low-privilege by default:
+    #: inspectors read the register; they cannot manage users or reference data.
+    self_registration_role: str = "inspector"
 
     #: Where Supabase sends a person after they accept an invite, so they can
     #: set their password. Must also be listed under Authentication -> URL

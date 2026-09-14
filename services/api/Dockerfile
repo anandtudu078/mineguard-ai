@@ -1,10 +1,12 @@
 # Production image for the compliance API.
 #
-# Build from the repository root so the lockfile context is available:
-#   docker build -f services/api/Dockerfile -t mineguard-api .
+# Build context is the services/api directory (the monorepo convention used by
+# Railway, Koyeb and docker itself):
+#   docker build -t mineguard-api services/api
 #
-# On Koyeb, set the Docker build context to the repository root and this file
-# as the Dockerfile. The healthcheck path is /health.
+# On first boot the container runs `alembic upgrade head` before binding
+# uvicorn, so a scaled-up instance never serves requests against a stale
+# schema. The healthcheck path is /health.
 
 FROM python:3.12-slim AS base
 
@@ -25,20 +27,18 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 # Layer cache: project metadata first, source last.
-COPY services/api/pyproject.toml services/api/uv.lock ./services/api/
-RUN cd services/api && uv sync --frozen --no-dev
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-COPY services/api/app ./services/api/app
-COPY services/api/alembic ./services/api/alembic
+COPY app ./app
+COPY alembic ./alembic
 # Migration config; without it `alembic upgrade head` fails at container start.
-COPY services/api/alembic.ini ./services/api/alembic.ini
-
-WORKDIR /app/services/api
+COPY alembic.ini ./alembic.ini
 
 ENV PATH="/opt/venv/bin:$PATH"
 
 EXPOSE 8000
 
-# Migrations run before the server binds so a scaled-up instance never serves
-# requests against a stale schema. exec keeps signal handling intact.
+# Railway/Koyeb inject PORT; default to 8000 for local runs. exec keeps signal
+# handling intact so shutdowns are clean.
 CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
