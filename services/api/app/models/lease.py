@@ -21,6 +21,7 @@ from app.models.enums import LeaseStatus, LeaseType, RoyaltyBasis
 
 if TYPE_CHECKING:
     from app.models.document import LeaseDocument
+    from app.models.finding import InspectionFinding
     from app.models.holder import LeaseHolder
     from app.models.licence import Licence
     from app.models.mineral import Mineral
@@ -111,6 +112,12 @@ class Lease(UUIDMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="LeaseDocument.created_at.desc()",
+    )
+    findings: Mapped[list[InspectionFinding]] = relationship(
+        back_populates="lease",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="InspectionFinding.detected_at.desc()",
     )
 
     __table_args__ = (

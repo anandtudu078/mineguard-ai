@@ -12,6 +12,8 @@ from app.models.enums import (
     AuditAction,
     AuditEntity,
     AuditOutcome,
+    FindingSource,
+    FindingStatus,
     HolderEntityType,
     LeaseStatus,
     LeaseType,
@@ -23,7 +25,9 @@ from app.models.enums import (
     Recurrence,
     RiskLevel,
     RoyaltyBasis,
+    ViolationSeverity,
 )
+from app.models.finding import InspectionFinding
 from app.models.holder import LeaseHolder
 from app.models.lease import Lease
 from app.models.licence import Licence
@@ -42,7 +46,10 @@ __all__ = [
     "Base",
     "DocumentStatus",
     "DocumentType",
+    "FindingSource",
+    "FindingStatus",
     "HolderEntityType",
+    "InspectionFinding",
     "Lease",
     "LeaseDocument",
     "LeaseHolder",
@@ -64,4 +71,5 @@ __all__ = [
     "TimestampMixin",
     "UUIDMixin",
     "enum_column",
+    "ViolationSeverity",
 ]

@@ -16,11 +16,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import AuditCtx, CurrentPrincipal, DbSession
+from app.core.config import settings
 from app.core.permissions import Permission
+from app.core.supabase_admin import SupabaseAdminError, invite_user
 from app.models.enums import AppRole, AuditAction, AuditEntity
 from app.models.holder import LeaseHolder
 from app.models.user import AppUser
-from app.schemas.identity import AppUserCreate, AppUserRead, AppUserUpdate
+from app.schemas.identity import AppUserCreate, AppUserInvite, AppUserRead, AppUserUpdate
 from app.services import audit, users as user_service
 from app.services.authorization import require_permission
 
@@ -108,6 +110,79 @@ def create_user(
         entity_label=user.email or str(user.id),
         summary=(
             f"Provisioned {user.email or user.id} as {user.role}."
+            + (f" Scoped to holder {user.holder_id}." if user.holder_id else "")
+        ),
+        changed_fields=("role", "holder_id", "email", "full_name"),
+    )
+    session.commit()
+    session.refresh(user)
+    return AppUserRead.model_validate(user)
+
+
+@router.post(
+    "/invite",
+    response_model=AppUserRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Invite a user by email",
+)
+def invite(
+    payload: AppUserInvite,
+    session: DbSession,
+    principal: CurrentPrincipal,
+    context: AuditCtx,
+) -> AppUserRead:
+    """Send the Supabase invite, then provision the profile atomically.
+
+    The email goes out first: if Supabase cannot send it (misconfigured key,
+    bounced address, provider outage) nothing is created, so an admin is never
+    left with a half-built account. Profile creation is what the audit trail
+    records.
+    """
+    _require_admin(session, principal, context)
+    _check_holder(session, payload.holder_id)
+
+    normalized_email = payload.email.strip().lower()
+
+    try:
+        user_service.validate_operator_scope(payload.role, payload.holder_id)
+    except ValueError as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
+
+    redirect_to = settings.invite_redirect_url
+
+    try:
+        supabase_user_id = invite_user(normalized_email, redirect_to=redirect_to)
+    except SupabaseAdminError as error:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(error)) from error
+
+    user = AppUser(
+        id=uuid.UUID(supabase_user_id),
+        email=normalized_email,
+        full_name=payload.full_name,
+        role=payload.role,
+        holder_id=payload.holder_id,
+        notes=payload.notes,
+    )
+
+    session.add(user)
+    try:
+        session.flush()
+    except IntegrityError as error:
+        session.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "That email already has a user profile"
+        ) from error
+
+    audit.record(
+        session,
+        principal,
+        context,
+        action=AuditAction.CREATE,
+        entity_type=AuditEntity.USER,
+        entity_id=user.id,
+        entity_label=user.email or str(user.id),
+        summary=(
+            f"Invited {user.email or user.id} as {user.role}."
             + (f" Scoped to holder {user.holder_id}." if user.holder_id else "")
         ),
         changed_fields=("role", "holder_id", "email", "full_name"),

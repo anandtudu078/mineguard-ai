@@ -123,6 +123,47 @@ class RiskLevel(StrEnum):
     CRITICAL = "critical"
 
 
+class ViolationSeverity(StrEnum):
+    """How serious an AI-detected or reported site finding is.
+
+    Severity drives both the safety share of the compliance score and the
+    escalation ladder, so the vocabulary is deliberately short: gradations
+    beyond these proved impossible to apply consistently in the field.
+    """
+
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class FindingSource(StrEnum):
+    """Who or what produced an inspection finding."""
+
+    #: Vision model analysing a site photo.
+    AI_VISION = "ai_vision"
+    #: A leaseholder reporting themselves.
+    OPERATOR = "operator"
+    #: A regulator-reported finding from a site visit.
+    INSPECTOR = "inspector"
+    #: Catch-all for automated feeds (IoT sensors, third-party reports).
+    MANUAL = "manual"
+
+
+class FindingStatus(StrEnum):
+    """Lifecycle of an inspection finding.
+
+    OPEN findings weigh on the compliance score; the terminal states do not.
+    ``false_positive`` exists because computer-vision findings will sometimes
+    be wrong, and discarding them honestly beats gaming the score.
+    """
+
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    FALSE_POSITIVE = "false_positive"
+
+
 class AppRole(StrEnum):
     """What a signed-in user is allowed to do.
 
@@ -173,6 +214,7 @@ class AuditEntity(StrEnum):
     HOLDER = "holder"
     USER = "user"
     SESSION = "session"
+    FINDING = "finding"
 
 
 class AuditOutcome(StrEnum):

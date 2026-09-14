@@ -69,6 +69,22 @@ class AppUserCreate(BaseModel):
     notes: str | None = None
 
 
+class AppUserInvite(BaseModel):
+    """Invite a colleague: sends the Supabase invite and provisions the profile.
+
+    One call instead of two so an admin can never end up with a Supabase
+    account that has no role, or a role that has no way to sign in.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(max_length=320)
+    full_name: str | None = Field(default=None, max_length=200)
+    role: AppRole = AppRole.OPERATOR
+    holder_id: uuid.UUID | None = None
+    notes: str | None = None
+
+
 class AppUserUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

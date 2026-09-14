@@ -15,6 +15,7 @@ from app.models.enums import RiskLevel
 from app.services.compliance import (
     LICENCE_WEIGHT,
     OBLIGATION_WEIGHT,
+    SAFETY_WEIGHT,
     TIMELINESS_WEIGHT,
     _build_assessment,
     _round_score,
@@ -34,7 +35,9 @@ def component(assessment, name: str):
 
 
 def test_weights_total_one_hundred():
-    assert LICENCE_WEIGHT + OBLIGATION_WEIGHT + TIMELINESS_WEIGHT == 100.0
+    assert (
+        LICENCE_WEIGHT + OBLIGATION_WEIGHT + TIMELINESS_WEIGHT + SAFETY_WEIGHT == 100.0
+    )
 
 
 def test_lease_with_no_records_scores_perfect_and_flags_the_gap():
@@ -171,7 +174,7 @@ def test_components_are_reported_for_explainability():
     )
 
     names = {c.name for c in assessment.components}
-    assert names == {"clearance_validity", "filing_adherence", "timeliness"}
+    assert names == {"clearance_validity", "filing_adherence", "timeliness", "site_safety"}
     for item in assessment.components:
         assert item.detail  # every component explains itself
 

@@ -8,6 +8,7 @@
  */
 
 import type {
+  AppUser,
   CalendarEntry,
   ComplianceScore,
   DashboardSummary,
@@ -264,6 +265,40 @@ export function getCalendarWindow(asOf?: string) {
     window_end: string;
     fiscal_year_end_month: number;
   }>(`/calendar/window${buildQuery({ as_of: asOf })}`);
+}
+
+// ---------------------------------------------------------------------------
+// Users (admin)
+// ---------------------------------------------------------------------------
+export interface InvitePayload {
+  email: string;
+  full_name?: string;
+  role: "admin" | "inspector" | "operator";
+  holder_id?: string | null;
+  notes?: string;
+}
+
+/** Invited profiles live under the users router; reads accept role filters. */
+export function getUsers(params: { role?: string; is_active?: boolean; limit?: number } = {}) {
+  return apiFetch<AppUser[]>(`/users${buildQuery(params)}`);
+}
+
+/** Sends the Supabase invite email and provisions the profile in one call. */
+export function inviteUser(payload: InvitePayload) {
+  return apiFetch<AppUser>(`/users/invite`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateUser(
+  userId: string,
+  payload: { role?: string; holder_id?: string | null; is_active?: boolean; notes?: string },
+) {
+  return apiFetch<AppUser>(`/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 // ---------------------------------------------------------------------------
