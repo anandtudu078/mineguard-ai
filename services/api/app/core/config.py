@@ -1,8 +1,9 @@
 """Application settings, loaded from the environment (see /.env.example)."""
 
+import json
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,7 +20,13 @@ class Settings(BaseSettings):
     # --- Core ---
     api_env: str = "development"
     api_secret_key: str = "change-me-in-production"
-    api_cors_origins: list[str] = ["http://localhost:3000"]
+    # Kept as a raw string on purpose: pydantic-settings JSON-decodes list-typed
+    # fields from the environment before any validator runs, so a bare or
+    # comma-separated API_CORS_ORIGINS crashed boot with JSONDecodeError.
+    # Parsing happens in the api_cors_origins property below.
+    api_cors_origins_raw: str = Field(
+        default="http://localhost:3000", validation_alias="API_CORS_ORIGINS"
+    )
 
     # --- Datastore ---
     # Port 5434 matches infra/docker-compose.yml, which avoids the very common
@@ -86,13 +93,15 @@ class Settings(BaseSettings):
     #: A licence expiring within this many days is flagged as "expiring soon".
     licence_expiry_warning_days: int = 90
 
-    @field_validator("api_cors_origins", mode="before")
-    @classmethod
-    def _split_origins(cls, value: object) -> object:
-        """Allow a comma-separated string in CORS_ORIGINS environment variables."""
-        if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+    @property
+    def api_cors_origins(self) -> list[str]:
+        """Accept API_CORS_ORIGINS as either a JSON array or a comma-separated list."""
+        value = self.api_cors_origins_raw.strip()
+        if not value:
+            return []
+        if value.startswith("["):
+            return [str(origin).strip() for origin in json.loads(value) if str(origin).strip()]
+        return [origin.strip() for origin in value.split(",") if origin.strip()]
 
     @field_validator("supabase_url", "supabase_jwt_secret", "supabase_jwt_issuer", mode="before")
     @classmethod
