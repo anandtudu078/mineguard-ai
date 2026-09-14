@@ -1,0 +1,54 @@
+# Local development infrastructure for the mining governance platform.
+#
+#   postgres -> PostGIS + pgvector, the primary datastore
+#   redis    -> Celery broker / result backend for background compliance jobs
+#
+# Start with:  docker compose -f infra/docker-compose.yml up -d
+#
+# Host ports default to 5434/6379. 5432 is deliberately avoided because a local
+# PostgreSQL or another project's container very often owns it already; override
+# with POSTGRES_PORT=5432 if that port is genuinely free on your machine.
+name: mining-governance
+
+services:
+  postgres:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    image: mining-governance/postgres:16-postgis-pgvector
+    container_name: mg-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mining
+      POSTGRES_PASSWORD: mining
+      POSTGRES_DB: mining_governance
+      # Deterministic collation so string ordering matches in tests.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mining -d mining_governance"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: mg-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
+  redisdata:

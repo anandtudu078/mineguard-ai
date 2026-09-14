@@ -1,0 +1,38 @@
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Env / secrets ---
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- Data / uploads ---
+/data/
+/uploads/
+*.sqlite3
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
