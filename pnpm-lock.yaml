@@ -25,6 +25,9 @@ importers:
       cn:
         specifier: ^0.3.0
         version: 0.3.0
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       lucide-react:
         specifier: ^1.45.0
         version: 1.45.0(react@19.2.8)
