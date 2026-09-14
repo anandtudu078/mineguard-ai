@@ -114,6 +114,13 @@ def run_migrations_online() -> None:
         with context.begin_transaction():
             context.run_migrations()
 
+        # Managed hosts such as Supabase can leave this transaction open after
+        # alembic finishes, so the final COMMIT never reaches the server and
+        # the whole chain is discarded when the connection closes. Close it
+        # explicitly; when alembic already committed this is a no-op.
+        if connection.in_transaction():
+            connection.commit()
+
 
 if context.is_offline_mode():
     run_migrations_offline()
