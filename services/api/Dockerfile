@@ -30,6 +30,8 @@ RUN cd services/api && uv sync --frozen --no-dev
 
 COPY services/api/app ./services/api/app
 COPY services/api/alembic ./services/api/alembic
+# Migration config; without it `alembic upgrade head` fails at container start.
+COPY services/api/alembic.ini ./services/api/alembic.ini
 
 WORKDIR /app/services/api
 
