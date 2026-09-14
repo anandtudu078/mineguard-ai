@@ -368,7 +368,11 @@ def score_leases(
 
     return {
         lease_id: _build_assessment(
-            lease_id, licences.get(lease_id, {}), obligations.get(lease_id, {}), warning_days, findings.get(lease_id, {})
+            lease_id,
+            licences.get(lease_id, {}),
+            obligations.get(lease_id, {}),
+            warning_days,
+            findings.get(lease_id, {}),
         )
         for lease_id in lease_ids
     }

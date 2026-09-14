@@ -23,7 +23,8 @@ from app.models.enums import AppRole, AuditAction, AuditEntity
 from app.models.holder import LeaseHolder
 from app.models.user import AppUser
 from app.schemas.identity import AppUserCreate, AppUserInvite, AppUserRead, AppUserUpdate
-from app.services import audit, users as user_service
+from app.services import audit
+from app.services import users as user_service
 from app.services.authorization import require_permission
 
 router = APIRouter(prefix="/users", tags=["users"])

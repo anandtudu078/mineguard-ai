@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
 
 import httpx
 from sqlalchemy import select
@@ -162,7 +161,10 @@ def run_escalation_sweep(
                 None,
                 action=AuditAction.UPDATE,
                 entity_type=AuditEntity.FINDING,
-                summary=f"Escalated unacknowledged {finding.severity.value} finding: {finding.title}",
+                summary=(
+                    f"Escalated unacknowledged {finding.severity.value} finding: "
+                    f"{finding.title}"
+                ),
                 entity_id=finding.id,
                 entity_label=f"{lease.lease_number} / {finding.title}",
             )

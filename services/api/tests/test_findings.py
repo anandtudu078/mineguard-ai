@@ -7,7 +7,6 @@ without touching the network.
 
 from __future__ import annotations
 
-import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -216,7 +215,7 @@ def test_resolve_closes_finding(client: TestClient, session: Session, lease: Lea
 
 
 def test_list_filters_by_status(client: TestClient, session: Session, lease: Lease):
-    open_one = _seed_finding(session, lease, title="Open A")
+    _seed_finding(session, lease, title="Open A")
     _seed_finding(session, lease, title="Open B")
     resolved = _seed_finding(session, lease)
     resolved.status = FindingStatus.RESOLVED
@@ -262,10 +261,11 @@ def test_escalation_sweep_escalates_stale_unacknowledged(
     stale = _seed_finding(
         session, lease, detected_at=datetime.now(UTC) - timedelta(days=3)
     )
-    fresh = _seed_finding(
+    # Seeded but deliberately not escalated: too fresh, too low severity.
+    _seed_finding(
         session, lease, title="Fresh finding", detected_at=datetime.now(UTC)
     )
-    low = _seed_finding(
+    _seed_finding(
         session,
         lease,
         title="Low sev stale",

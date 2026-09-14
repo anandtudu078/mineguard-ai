@@ -23,6 +23,7 @@ dependencies = [
     # projects sign with.
     "pyjwt[crypto]>=2.10",
     "google-genai>=1.0",
+    "supabase>=2.31.0",
 ]
 
 [dependency-groups]

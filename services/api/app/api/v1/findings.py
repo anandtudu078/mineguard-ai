@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime
-from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 
 from app.api.deps import AppSettings, AuditCtx, CurrentPrincipal, DbSession, PaginationDep
-from app.core.permissions import Permission, role_has
+from app.core.permissions import Permission
+from app.core.storage import UploadStorage
 from app.models.document import DocumentStatus, DocumentType, LeaseDocument
 from app.models.enums import (
     AuditAction,
@@ -51,10 +51,16 @@ def _serialize(finding: InspectionFinding) -> dict:
         "confidence": float(finding.confidence) if finding.confidence is not None else None,
         "ai_model": finding.ai_model,
         "detected_at": finding.detected_at.isoformat(),
-        "first_alerted_at": finding.first_alerted_at.isoformat() if finding.first_alerted_at else None,
-        "acknowledged_at": finding.acknowledged_at.isoformat() if finding.acknowledged_at else None,
+        "first_alerted_at": (
+            finding.first_alerted_at.isoformat() if finding.first_alerted_at else None
+        ),
+        "acknowledged_at": (
+            finding.acknowledged_at.isoformat() if finding.acknowledged_at else None
+        ),
         "escalation_level": finding.escalation_level,
-        "last_escalated_at": finding.last_escalated_at.isoformat() if finding.last_escalated_at else None,
+        "last_escalated_at": (
+            finding.last_escalated_at.isoformat() if finding.last_escalated_at else None
+        ),
         "corrective_action": finding.corrective_action,
         "action_owner": finding.action_owner,
         "action_due_date": finding.action_due_date.isoformat() if finding.action_due_date else None,
@@ -109,19 +115,17 @@ async def analyze_lease_photo(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Uploaded file is empty")
 
     # Persist the photo first: evidence survives even if analysis fails.
-    storage_dir = Path(settings.document_storage_path)
-    storage_dir.mkdir(parents=True, exist_ok=True)
     file_name = file.filename or f"site-photo-{uuid.uuid4()}.jpg"
-    stored_name = f"{uuid.uuid4()}_{file_name}"
-    stored_path = storage_dir / stored_name
-    stored_path.write_bytes(raw_bytes)
+    reference = UploadStorage(settings).save_upload(
+        raw_bytes, file_name, file.content_type
+    )
 
     document = LeaseDocument(
         lease_id=lease_id,
         title=f"Site photo: {file_name}",
         file_name=file_name,
         content_type=file.content_type or "image/jpeg",
-        file_path=str(stored_path),
+        file_path=reference,
         document_type=DocumentType.EVIDENCE,
         source="ai_vision",
         status=DocumentStatus.PENDING_REVIEW,
@@ -147,7 +151,7 @@ async def analyze_lease_photo(
         finding = InspectionFinding(
             lease_id=lease_id,
             source=FindingSource.AI_VISION,
-            image_path=str(stored_path),
+            image_path=reference,
             title=item.title,
             description=item.description,
             severity=item.severity,
@@ -164,9 +168,14 @@ async def analyze_lease_photo(
         if auto_alert and recipients:
             for finding in created:
                 if finding.severity in _IMMEDIATE_ALERT_SEVERITIES:
-                    if send_finding_alert(
-                        session, finding, lease, settings=settings, recipient_email=recipients[0]
-                    ):
+                    sent = send_finding_alert(
+                        session,
+                        finding,
+                        lease,
+                        settings=settings,
+                        recipient_email=recipients[0],
+                    )
+                    if sent:
                         finding.first_alerted_at = finding.first_alerted_at or datetime.now(UTC)
 
         record(
@@ -234,9 +243,11 @@ def list_findings(
             .order_by(InspectionFinding.detected_at.desc())
             .limit(page.limit)
             .offset(page.offset)
-        ).all()
+        )
     )
-    return Page(items=[_serialize(f) for f in rows], total=total, limit=page.limit, offset=page.offset)
+    return Page(
+        items=[_serialize(f) for f in rows], total=total, limit=page.limit, offset=page.offset
+    )
 
 
 @router.post(
