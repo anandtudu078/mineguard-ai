@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -76,10 +77,20 @@ export default function LoginPage() {
             <input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 w-full rounded-lg border border-input bg-background px-3 text-base outline-none focus:ring-2 focus:ring-ring" autoComplete="current-password" />
           </label>
           {error && <p role="alert" className="flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300"><AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />{error}</p>}
-          <button type="submit" disabled={busy} className="min-h-11 w-full rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={busy}
+            className="min-h-11 w-full rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
             {busy ? "Signing in..." : "Sign in"}
           </button>
         </form>
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          New here?{" "}
+          <Link href="/register" className="font-medium text-primary hover:underline">
+            Create an account
+          </Link>
+        </p>
       </section>
     </main>
   );
