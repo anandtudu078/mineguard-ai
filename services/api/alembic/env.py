@@ -19,7 +19,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Alembic stores this in a configparser section, whose BasicInterpolation treats
+# "%" as the start of a %(name)s reference. A URL-encoded password (e.g. "%40"
+# for "@") is therefore rejected with "invalid interpolation syntax". Doubling
+# the percent sign escapes it; configparser un-doubles it on read-back, so
+# engine_from_config still receives the correct URL.
+config.set_main_option(
+    "sqlalchemy.url", settings.database_url.replace("%", "%%")
+)
 target_metadata = Base.metadata
 
 #: Schemas Alembic is allowed to manage. Everything else belongs to an
